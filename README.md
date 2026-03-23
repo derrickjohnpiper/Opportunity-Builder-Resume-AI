@@ -4,8 +4,8 @@
 </h1>
 Opportunity Builder Resume AI is not quite complete yet with the additions I want to make. I want this website to be a one stop shop for an underemployed persons needs. This was inspired by my lack of job and the trouble I am having finding work.
 
-One stop shop for all resume, job hunting, & candidate sourcing needs. I am currently out of work, & thought this would be the best practice project to start. Also, I am new on GitHub. I plan to and a teired level level for some of the more complected items, So I need a strip account.
- 
+One stop shop for all resume, job hunting, & candidate sourcing needs. I am currently out of work, & thought this would be the best practice project to start. Also, I am new on GitHub. I plan to and a tiered level level for some of the more complicated items, So I need a strip account.
+
 Please contact me directly for any questions
 Opportunity Builder Resume AI
 Derrick-John Piper
