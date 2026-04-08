@@ -120,10 +120,10 @@ export default function Jobs() {
                 
                 <div className="flex flex-col items-end">
                   {job.compatibility_score ? (
-                    <div className={`px-4 py-2 rounded-full font-bold text-sm border ${
-                      job.compatibility_score >= 80 ? 'bg-accent-success/10 text-accent-success border-accent-success/20' : 
-                      job.compatibility_score >= 60 ? 'bg-accent-warning/10 text-accent-warning border-accent-warning/20' : 
-                      'bg-destructive/10 text-destructive border-destructive/20'
+                    <div className={`px-4 py-2 rounded-full font-bold text-lg border animate-in zoom-in duration-300 ${
+                      job.compatibility_score >= 80 ? 'bg-accent-success/10 text-accent-success border-accent-success/30' : 
+                      job.compatibility_score >= 60 ? 'bg-accent-warning/10 text-accent-warning border-accent-warning/30' : 
+                      'bg-destructive/10 text-destructive border-destructive/30'
                     }`}>
                       {job.compatibility_score}% Match
                     </div>

@@ -89,22 +89,22 @@ export default function Resume() {
           </div>
         </div>
         
-        <div className="p-6 border-t border-border bg-surface flex gap-4">
+        <div className="p-6 border-t border-border bg-surface flex flex-col gap-3">
             <button 
                 onClick={() => handleGenerate('resume')}
                 disabled={loadingType !== null}
-                className="flex-1 bg-primary text-white py-2.5 rounded-md font-medium hover:bg-primary-hover transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full bg-primary text-white py-3 rounded-md font-medium hover:bg-primary-hover transition-colors flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
             >
                 {loadingType === 'resume' ? <Loader2 className="animate-spin w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
-                Optimize Resume
+                Optimize Resume for ATS
             </button>
             <button 
                 onClick={() => handleGenerate('cover')}
                 disabled={loadingType !== null}
-                className="flex-1 bg-white border border-primary text-primary py-2.5 rounded-md font-medium hover:bg-surface_alt transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full bg-white border-2 border-primary text-primary py-3 rounded-md font-medium hover:bg-surface_alt transition-colors flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
             >
                 {loadingType === 'cover' ? <Loader2 className="animate-spin w-5 h-5" /> : <FileText className="w-5 h-5" />}
-                Write Cover Letter
+                Generate Cover Letter
             </button>
         </div>
       </div>
