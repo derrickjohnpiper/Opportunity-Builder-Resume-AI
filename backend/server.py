@@ -68,7 +68,37 @@ class InterviewSession(BaseModel):
     scores: List[int] = []
     feedbacks: List[str] = []
 
+class UserProfile(BaseModel):
+    user_id: str
+    full_name: Optional[str] = None
+    base_resume: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    weekly_goal: int = 10
+
 # --- Endpoints ---
+
+@api_router.get("/profile", response_model=UserProfile)
+async def get_profile(user_id: str):
+    response = supabase.table('user_profiles').select('*').eq('user_id', user_id).execute()
+    if not response.data:
+        return UserProfile(user_id=user_id)
+    return response.data[0]
+
+@api_router.put("/profile", response_model=UserProfile)
+async def update_profile(profile: UserProfile):
+    # Check if exists
+    existing = supabase.table('user_profiles').select('*').eq('user_id', profile.user_id).execute()
+    
+    doc = profile.model_dump()
+    doc['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    if existing.data:
+        response = supabase.table('user_profiles').update(doc).eq('user_id', profile.user_id).execute()
+    else:
+        doc['created_at'] = doc['updated_at']
+        response = supabase.table('user_profiles').insert(doc).execute()
+        
+    return response.data[0]
 
 @api_router.get("/jobs", response_model=List[Job])
 async def get_jobs(user_id: str = None):

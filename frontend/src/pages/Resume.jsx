@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { Sparkles, Loader2, Save, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { Sparkles, Loader2, Save, FileText, Download } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
-
-const API = process.env.REACT_APP_BACKEND_URL + '/api';
+import fileDownload from 'js-file-download';
 
 export default function Resume() {
+  const { api, user } = useAuth();
+  
   const [formData, setFormData] = useState({
     original_resume: '',
     target_job_description: '',
@@ -16,13 +17,31 @@ export default function Resume() {
   const [result, setResult] = useState('');
   const [activeTab, setActiveTab] = useState('resume');
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get(`/api/profile?user_id=${user.id}`);
+        if (res.data) {
+          setFormData(prev => ({
+            ...prev,
+            original_resume: res.data.base_resume || '',
+            hiring_manager_linkedin: res.data.linkedin_url || ''
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to load profile data for resume optimization");
+      }
+    };
+    if (user) fetchProfile();
+  }, [user, api]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleGenerate = async (type) => {
     if (!formData.original_resume || !formData.target_job_description) {
-      toast.error('Resume and Job Description are required.');
+      toast.error('Base Resume and Target Job Description are required.');
       return;
     }
     
@@ -31,16 +50,23 @@ export default function Resume() {
     setActiveTab(type);
     
     try {
-      const endpoint = type === 'resume' ? '/resume/optimize' : '/resume/cover-letter';
-      const res = await axios.post(`${API}${endpoint}`, formData);
+      const endpoint = type === 'resume' ? '/api/resume/optimize' : '/api/resume/cover-letter';
+      const res = await api.post(endpoint, formData);
       setResult(type === 'resume' ? res.data.optimized_resume : res.data.cover_letter);
       toast.success(`Successfully generated ${type === 'resume' ? 'Optimized Resume' : 'Cover Letter'}`);
     } catch (err) {
-      toast.error('Failed to generate.');
+      toast.error('Failed to generate. Please try again.');
       console.error(err);
     } finally {
       setLoadingType(null);
     }
+  };
+
+  const downloadTxtFile = () => {
+    if (!result) return;
+    const filename = activeTab === 'resume' ? 'Optimized_Resume.txt' : 'Cover_Letter.txt';
+    fileDownload(result, filename);
+    toast.success("Downloaded successfully!");
   };
 
   return (
@@ -56,29 +82,35 @@ export default function Resume() {
         
         <div className="p-6 flex-1 overflow-y-auto space-y-6">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Original Resume</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5 flex justify-between">
+                <span>Master Resume</span>
+                <span className="text-xs text-muted-foreground font-normal">Pre-filled from Profile</span>
+            </label>
             <textarea 
               name="original_resume"
               value={formData.original_resume}
               onChange={handleChange}
-              className="w-full h-32 bg-white border border-border/60 rounded-md p-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+              className="w-full h-32 bg-white border border-border/60 rounded-md p-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-mono"
               placeholder="Paste your base resume text here..."
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Target Job Description</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Target Job Description (Required)</label>
             <textarea 
               name="target_job_description"
               value={formData.target_job_description}
               onChange={handleChange}
-              className="w-full h-32 bg-white border border-border/60 rounded-md p-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-              placeholder="Paste the job description you are targeting..."
+              className="w-full h-40 bg-white border border-border/60 rounded-md p-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none"
+              placeholder="Paste the full job description you are targeting..."
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Hiring Manager LinkedIn (Optional)</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5 flex justify-between">
+                <span>Hiring Manager LinkedIn (Optional)</span>
+                <span className="text-xs text-muted-foreground font-normal">Pre-filled from Profile</span>
+            </label>
             <textarea 
               name="hiring_manager_linkedin"
               value={formData.hiring_manager_linkedin}
@@ -136,7 +168,7 @@ export default function Resume() {
                     <p className="mt-4 font-medium text-primary animate-pulse">AI Agent is writing...</p>
                 </div>
             ) : result ? (
-                <div className="whitespace-pre-wrap text-foreground leading-relaxed text-sm">
+                <div className="whitespace-pre-wrap text-foreground leading-relaxed text-sm font-mono">
                     {result}
                 </div>
             ) : (
@@ -147,8 +179,19 @@ export default function Resume() {
             )}
         </div>
         
-        <div className="p-4 border-t border-border bg-white text-right">
-            <button className="bg-surface border border-border text-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-surface_alt transition-colors inline-flex items-center gap-2">
+        <div className="p-4 border-t border-border bg-white flex justify-end gap-3">
+            <button 
+                onClick={downloadTxtFile}
+                disabled={!result}
+                className="bg-white border border-border text-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-surface_alt transition-colors inline-flex items-center gap-2 disabled:opacity-50 shadow-sm"
+            >
+                <Download className="w-4 h-4" />
+                Download .txt
+            </button>
+            <button 
+                disabled={!result}
+                className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-hover transition-colors inline-flex items-center gap-2 disabled:opacity-50 shadow-sm"
+            >
                 <Save className="w-4 h-4" />
                 Save to Database
             </button>

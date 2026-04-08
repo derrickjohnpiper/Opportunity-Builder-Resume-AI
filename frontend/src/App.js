@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
-import { LayoutDashboard, Briefcase, FileText, Video, Trello, LogOut } from "lucide-react";
+import { BrowserRouter, Routes, Route, Link, useLocation, Navigate, useNavigate } from "react-router-dom";
+import { LayoutDashboard, Briefcase, FileText, Video, Trello, LogOut, UserCircle } from "lucide-react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Dashboard from "./pages/Dashboard";
 import Jobs from "./pages/Jobs";
@@ -9,6 +9,8 @@ import Resume from "./pages/Resume";
 import Interview from "./pages/Interview";
 import Landing from "./pages/Landing";
 import { LoginPage } from "./pages/LoginPage";
+import Onboarding from "./pages/Onboarding";
+import Profile from "./pages/Profile";
 import { Loader2 } from "lucide-react";
 
 const ProtectedRoute = ({ children }) => {
@@ -31,7 +33,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="w-64 bg-white border-r border-border h-screen sticky top-0 flex flex-col p-4 shadow-sm">
+    <div className="w-64 bg-white border-r border-border h-screen sticky top-0 flex flex-col p-4 shadow-sm z-10">
       <Link to="/" className="flex items-center gap-3 px-4 py-6 mb-4 border-b border-border/50 hover:opacity-80 transition-opacity">
         <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-white font-bold text-xl">
           J
@@ -60,9 +62,20 @@ const Sidebar = () => {
         })}
       </nav>
       
-      <div className="mt-auto pt-4 border-t border-border/50">
-        <div className="p-4 bg-surface rounded-md border border-border/50 mb-3 flex flex-col gap-2">
-          <p className="text-xs text-muted-foreground truncate">{user?.email || "Guest"}</p>
+      <div className="mt-auto pt-4 border-t border-border/50 space-y-2">
+        <Link 
+            to="/profile" 
+            className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
+                location.pathname === '/profile' 
+                  ? "bg-surface text-foreground font-medium" 
+                  : "text-muted-foreground hover:bg-surface hover:text-foreground"
+            }`}
+        >
+            <UserCircle size={20} />
+            <span>Profile Settings</span>
+        </Link>
+        <div className="p-4 bg-surface rounded-md border border-border/50 flex flex-col gap-2">
+          <p className="text-xs text-muted-foreground truncate" title={user?.email}>{user?.email || "Guest"}</p>
           <button onClick={signOut} className="flex items-center gap-2 text-xs font-medium text-destructive hover:opacity-80">
             <LogOut size={14} /> Sign Out
           </button>
@@ -77,7 +90,7 @@ const AppLayout = ({ children }) => {
     <div className="flex min-h-screen bg-surface_alt font-body">
       <Sidebar />
       <main className="flex-1 flex flex-col h-screen overflow-y-auto">
-        <div className="p-6 md:p-8 lg:p-12 max-w-[1600px] w-full mx-auto">
+        <div className="p-6 md:p-8 lg:p-12 max-w-[1600px] w-full mx-auto relative">
           {children}
         </div>
       </main>
@@ -90,12 +103,14 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
       
       <Route path="/dashboard" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
       <Route path="/jobs" element={<ProtectedRoute><AppLayout><Jobs /></AppLayout></ProtectedRoute>} />
       <Route path="/kanban" element={<ProtectedRoute><AppLayout><Kanban /></AppLayout></ProtectedRoute>} />
       <Route path="/resume" element={<ProtectedRoute><AppLayout><Resume /></AppLayout></ProtectedRoute>} />
       <Route path="/interview" element={<ProtectedRoute><AppLayout><Interview /></AppLayout></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>} />
     </Routes>
   );
 }
