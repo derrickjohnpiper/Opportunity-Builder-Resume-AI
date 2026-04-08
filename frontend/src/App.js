@@ -1,15 +1,27 @@
 import { useState } from "react";
-import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Briefcase, FileText, Video, Trello } from "lucide-react";
+import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
+import { LayoutDashboard, Briefcase, FileText, Video, Trello, LogOut } from "lucide-react";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Dashboard from "./pages/Dashboard";
 import Jobs from "./pages/Jobs";
 import Kanban from "./pages/Kanban";
 import Resume from "./pages/Resume";
 import Interview from "./pages/Interview";
 import Landing from "./pages/Landing";
+import { LoginPage } from "./pages/LoginPage";
+import { Loader2 } from "lucide-react";
+
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary w-8 h-8" /></div>;
+  if (!user) return <Navigate to="/login" />;
+  return children;
+};
 
 const Sidebar = () => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
+  
   const navItems = [
     { name: "Dashboard", path: "/dashboard", icon: <LayoutDashboard size={20} /> },
     { name: "Jobs Aggregator", path: "/jobs", icon: <Briefcase size={20} /> },
@@ -48,17 +60,12 @@ const Sidebar = () => {
         })}
       </nav>
       
-      <div className="mt-auto p-4 bg-surface rounded-md border border-border/50">
-        <div className="flex items-center gap-3">
-          <img 
-            src="https://images.unsplash.com/photo-1576558656222-ba66febe3dec?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3NTY0NTM5N3ww&ixlib=rb-4.1.0&q=85" 
-            alt="Profile" 
-            className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
-          />
-          <div>
-            <p className="text-sm font-medium text-foreground">Hiring Pro</p>
-            <p className="text-xs text-muted-foreground">Pro Plan</p>
-          </div>
+      <div className="mt-auto pt-4 border-t border-border/50">
+        <div className="p-4 bg-surface rounded-md border border-border/50 mb-3 flex flex-col gap-2">
+          <p className="text-xs text-muted-foreground truncate">{user?.email || "Guest"}</p>
+          <button onClick={signOut} className="flex items-center gap-2 text-xs font-medium text-destructive hover:opacity-80">
+            <LogOut size={14} /> Sign Out
+          </button>
         </div>
       </div>
     </div>
@@ -78,20 +85,27 @@ const AppLayout = ({ children }) => {
   );
 };
 
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<LoginPage />} />
+      
+      <Route path="/dashboard" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
+      <Route path="/jobs" element={<ProtectedRoute><AppLayout><Jobs /></AppLayout></ProtectedRoute>} />
+      <Route path="/kanban" element={<ProtectedRoute><AppLayout><Kanban /></AppLayout></ProtectedRoute>} />
+      <Route path="/resume" element={<ProtectedRoute><AppLayout><Resume /></AppLayout></ProtectedRoute>} />
+      <Route path="/interview" element={<ProtectedRoute><AppLayout><Interview /></AppLayout></ProtectedRoute>} />
+    </Routes>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Landing Page has NO Sidebar */}
-        <Route path="/" element={<Landing />} />
-        
-        {/* Dashboard Routes HAVE Sidebar */}
-        <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
-        <Route path="/jobs" element={<AppLayout><Jobs /></AppLayout>} />
-        <Route path="/kanban" element={<AppLayout><Kanban /></AppLayout>} />
-        <Route path="/resume" element={<AppLayout><Resume /></AppLayout>} />
-        <Route path="/interview" element={<AppLayout><Interview /></AppLayout>} />
-      </Routes>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
     </BrowserRouter>
   );
 }

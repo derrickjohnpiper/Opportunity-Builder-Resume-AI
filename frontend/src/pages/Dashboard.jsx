@@ -73,11 +73,19 @@ export default function Dashboard() {
                 <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
                     <Trophy size={40} />
                 </div>
-                <h3 className="text-2xl font-bold mb-2">AI Career Coach</h3>
-                <p className="text-muted-foreground mb-6">Your personal agent is ready to optimize your next application.</p>
-                <Link to="/resume" className="bg-primary text-white px-6 py-2 rounded-md font-medium hover:bg-primary-hover transition-colors shadow-lg shadow-primary/20 inline-block">
-                    Start Optimization
-                </Link>
+                <h3 className="text-2xl font-bold mb-2">Upgrade to Pro</h3>
+                <p className="text-muted-foreground mb-6">Get unlimited AI optimization, automated mock interviews and faster models.</p>
+                <button onClick={async () => {
+                  try {
+                    const originUrl = window.location.origin;
+                    const res = await axios.post(`${API}/checkout/session`, { packageId: 'pro', originUrl });
+                    window.location.href = res.data.url;
+                  } catch (e) {
+                    toast.error("Failed to checkout");
+                  }
+                }} className="bg-primary text-white px-6 py-2 rounded-md font-medium hover:bg-primary-hover transition-colors shadow-lg shadow-primary/20 inline-block">
+                    Upgrade Now - $19.99
+                </button>
             </div>
         </div>
       </div>

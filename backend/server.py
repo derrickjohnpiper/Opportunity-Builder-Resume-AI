@@ -1,49 +1,57 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Dict
 import uuid
 from datetime import datetime, timezone
-from services.ai_service import AIService
+from supabase import create_client, Client
+from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(supabase_url, supabase_key)
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
+
+from services.ai_service import AIService
 ai_service = AIService()
+
+# Stripe Integration
+stripe_checkout = StripeCheckout(
+    api_key=os.environ.get("STRIPE_API_KEY", "sk_test_emergent"),
+    webhook_url=os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001") + "/api/webhook/stripe"
+)
+
+# PACKAGES for Stripe Checkout
+PACKAGES = {"pro": 19.99}
 
 # --- Models ---
 class Job(BaseModel):
-    model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: Optional[str] = None
     title: str
     company: str
     description: str
     posted_date: str
-    status: str = "pending_review"  # pending_review, approved, rejected
+    status: str = "pending_review"
     compatibility_score: Optional[int] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class Application(BaseModel):
-    model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: Optional[str] = None
     job_id: str
     company: str
     title: str
-    status: str = "Applied" # Applied, Interviewing, Offer, Rejected
+    status: str = "Applied"
     notes: str = ""
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class ResumeData(BaseModel):
     original_resume: str
@@ -51,149 +59,114 @@ class ResumeData(BaseModel):
     hiring_manager_linkedin: Optional[str] = None
 
 class InterviewSession(BaseModel):
-    model_config = ConfigDict(extra="ignore")
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: Optional[str] = None
     job_title: str
     status: str = "active"
     questions: List[str] = []
     answers: List[str] = []
     scores: List[int] = []
     feedbacks: List[str] = []
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 # --- Endpoints ---
 
 @api_router.get("/jobs", response_model=List[Job])
-async def get_jobs():
-    jobs = await db.jobs.find({}, {"_id": 0}).to_list(1000)
-    for j in jobs:
-        if isinstance(j.get('created_at'), str):
-            j['created_at'] = datetime.fromisoformat(j['created_at'])
-    return jobs
+async def get_jobs(user_id: str = None):
+    # Only returning user's jobs if user_id is provided, else all for testing
+    query = supabase.table('jobs').select('*')
+    if user_id:
+        query = query.eq('user_id', user_id)
+    response = query.execute()
+    return response.data
 
 @api_router.post("/jobs", response_model=Job)
 async def create_job(job: Job):
     doc = job.model_dump()
-    doc['created_at'] = doc['created_at'].isoformat()
-    await db.jobs.insert_one(doc)
-    return job
+    response = supabase.table('jobs').insert(doc).execute()
+    return response.data[0]
 
 @api_router.post("/jobs/{job_id}/score")
 async def score_job(job_id: str, request: dict):
-    # request: {"resume_text": "..."}
-    job_doc = await db.jobs.find_one({"id": job_id}, {"_id": 0})
-    if not job_doc:
+    job_doc = supabase.table('jobs').select('*').eq('id', job_id).execute()
+    if not job_doc.data:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    score = await ai_service.calculate_compatibility(request.get("resume_text", ""), job_doc["description"])
+    score = await ai_service.calculate_compatibility(request.get("resume_text", ""), job_doc.data[0]["description"])
     
-    await db.jobs.update_one({"id": job_id}, {"$set": {"compatibility_score": score}})
+    supabase.table('jobs').update({"compatibility_score": score}).eq('id', job_id).execute()
     return {"score": score}
 
 @api_router.put("/jobs/{job_id}/status")
 async def update_job_status(job_id: str, request: dict):
     new_status = request.get("status")
-    await db.jobs.update_one({"id": job_id}, {"$set": {"status": new_status}})
+    supabase.table('jobs').update({"status": new_status}).eq('id', job_id).execute()
     
-    # If approved, create an application entry automatically
     if new_status == "approved":
-        job_doc = await db.jobs.find_one({"id": job_id}, {"_id": 0})
-        app_doc = Application(job_id=job_id, company=job_doc["company"], title=job_doc["title"])
-        doc = app_doc.model_dump()
-        doc['created_at'] = doc['created_at'].isoformat()
-        doc['updated_at'] = doc['updated_at'].isoformat()
-        await db.applications.insert_one(doc)
+        job_doc = supabase.table('jobs').select('*').eq('id', job_id).execute().data[0]
+        app_doc = Application(job_id=job_id, company=job_doc["company"], title=job_doc["title"], user_id=job_doc.get("user_id"))
+        supabase.table('applications').insert(app_doc.model_dump()).execute()
         
     return {"status": "success"}
 
 @api_router.get("/applications", response_model=List[Application])
-async def get_applications():
-    apps = await db.applications.find({}, {"_id": 0}).to_list(1000)
-    for a in apps:
-        if isinstance(a.get('created_at'), str):
-            a['created_at'] = datetime.fromisoformat(a['created_at'])
-        if isinstance(a.get('updated_at'), str):
-            a['updated_at'] = datetime.fromisoformat(a['updated_at'])
-    return apps
+async def get_applications(user_id: str = None):
+    query = supabase.table('applications').select('*')
+    if user_id:
+        query = query.eq('user_id', user_id)
+    response = query.execute()
+    return response.data
 
 @api_router.put("/applications/{app_id}/status")
 async def update_app_status(app_id: str, request: dict):
     new_status = request.get("status")
-    await db.applications.update_one(
-        {"id": app_id}, 
-        {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
-    )
+    supabase.table('applications').update({"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}).eq('id', app_id).execute()
     return {"status": "success"}
 
 @api_router.post("/resume/optimize")
 async def optimize_resume(data: ResumeData):
-    optimized_resume = await ai_service.optimize_resume(
-        data.original_resume, 
-        data.target_job_description,
-        data.hiring_manager_linkedin
-    )
+    optimized_resume = await ai_service.optimize_resume(data.original_resume, data.target_job_description, data.hiring_manager_linkedin)
     return {"optimized_resume": optimized_resume}
 
 @api_router.post("/resume/cover-letter")
 async def generate_cover_letter(data: ResumeData):
-    cover_letter = await ai_service.generate_cover_letter(
-        data.original_resume, 
-        data.target_job_description,
-        data.hiring_manager_linkedin
-    )
+    cover_letter = await ai_service.generate_cover_letter(data.original_resume, data.target_job_description, data.hiring_manager_linkedin)
     return {"cover_letter": cover_letter}
 
 @api_router.post("/interview/start")
 async def start_interview(request: dict):
     job_title = request.get("job_title", "General")
-    session = InterviewSession(job_title=job_title)
+    user_id = request.get("user_id")
+    session = InterviewSession(job_title=job_title, user_id=user_id)
     
     first_question = await ai_service.generate_interview_question(job_title, [])
     session.questions.append(first_question)
     
-    doc = session.model_dump()
-    doc['created_at'] = doc['created_at'].isoformat()
-    await db.interviews.insert_one(doc)
-    
+    supabase.table('interviews').insert(session.model_dump()).execute()
     return {"session_id": session.session_id, "first_question": first_question}
 
 @api_router.post("/interview/{session_id}/answer")
 async def evaluate_answer(session_id: str, request: dict):
     answer = request.get("answer")
-    session_doc = await db.interviews.find_one({"session_id": session_id}, {"_id": 0})
-    if not session_doc:
+    session_doc = supabase.table('interviews').select('*').eq('session_id', session_id).execute()
+    if not session_doc.data:
         raise HTTPException(status_code=404)
         
-    last_question = session_doc["questions"][-1]
-    evaluation = await ai_service.evaluate_answer(last_question, answer, session_doc["job_title"])
+    s = session_doc.data[0]
+    last_question = s["questions"][-1]
+    evaluation = await ai_service.evaluate_answer(last_question, answer, s["job_title"])
     
-    # Generate next question if < 5
+    s["answers"].append(answer)
+    s["scores"].append(evaluation["score"])
+    s["feedbacks"].append(evaluation["feedback"])
+    
     next_question = None
-    if len(session_doc["questions"]) < 5:
-        next_question = await ai_service.generate_interview_question(session_doc["job_title"], session_doc["questions"])
-        
-    # Update DB
-    await db.interviews.update_one(
-        {"session_id": session_id},
-        {
-            "$push": {
-                "answers": answer,
-                "scores": evaluation["score"],
-                "feedbacks": evaluation["feedback"],
-            }
-        }
-    )
-    
-    if next_question:
-        await db.interviews.update_one(
-            {"session_id": session_id},
-            {"$push": {"questions": next_question}}
-        )
+    if len(s["questions"]) < 5:
+        next_question = await ai_service.generate_interview_question(s["job_title"], s["questions"])
+        s["questions"].append(next_question)
     else:
-        await db.interviews.update_one(
-            {"session_id": session_id},
-            {"$set": {"status": "completed"}}
-        )
+        s["status"] = "completed"
+        
+    supabase.table('interviews').update(s).eq('session_id', session_id).execute()
         
     return {
         "score": evaluation["score"],
@@ -201,6 +174,71 @@ async def evaluate_answer(session_id: str, request: dict):
         "next_question": next_question,
         "is_complete": next_question is None
     }
+
+# --- Payments API ---
+class PaymentRequest(BaseModel):
+    packageId: str
+    originUrl: str
+    user_id: Optional[str] = None
+
+@api_router.post("/checkout/session")
+async def create_checkout(request: PaymentRequest):
+    if request.packageId not in PACKAGES:
+        raise HTTPException(400, "Invalid package")
+        
+    amount = PACKAGES[request.packageId]
+    success_url = f"{request.originUrl}/dashboard?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{request.originUrl}/dashboard"
+    
+    checkoutrequest = CheckoutSessionRequest(
+        amount=amount, 
+        currency="usd", 
+        success_url=success_url, 
+        cancel_url=cancel_url, 
+        metadata={"user_id": request.user_id or "anonymous", "package": request.packageId}
+    )
+    
+    session = await stripe_checkout.create_checkout_session(checkoutrequest)
+    
+    # Store pending transaction in Supabase
+    tx_data = {
+        "user_id": request.user_id,
+        "session_id": session.session_id,
+        "amount": amount,
+        "currency": "usd",
+        "payment_status": "pending",
+        "metadata": {"package": request.packageId}
+    }
+    supabase.table('payment_transactions').insert(tx_data).execute()
+    
+    return {"url": session.url, "session_id": session.session_id}
+
+@api_router.get("/checkout/status/{session_id}")
+async def check_status(session_id: str):
+    status_response = await stripe_checkout.get_checkout_status(session_id)
+    
+    # Update the transaction in database
+    supabase.table('payment_transactions').update({
+        "payment_status": status_response.payment_status
+    }).eq("session_id", session_id).execute()
+    
+    return status_response
+
+@api_router.post("/webhook/stripe")
+async def handle_stripe_webhook(request: Request):
+    body = await request.body()
+    signature = request.headers.get("Stripe-Signature")
+    
+    # This automatically verifies the signature and parses the event using emergentintegrations
+    event = await stripe_checkout.handle_webhook(body, signature)
+    
+    if event.event_type == 'checkout.session.completed':
+        # Update db status asynchronously
+        supabase.table('payment_transactions').update({
+            "payment_status": "paid"
+        }).eq("session_id", event.session_id).execute()
+        
+    return {"status": "success"}
 
 app.include_router(api_router)
 
@@ -215,6 +253,3 @@ app.add_middleware(
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
