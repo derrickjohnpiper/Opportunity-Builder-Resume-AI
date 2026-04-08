@@ -6,11 +6,12 @@ import Jobs from "./pages/Jobs";
 import Kanban from "./pages/Kanban";
 import Resume from "./pages/Resume";
 import Interview from "./pages/Interview";
+import Landing from "./pages/Landing";
 
 const Sidebar = () => {
   const location = useLocation();
   const navItems = [
-    { name: "Dashboard", path: "/", icon: <LayoutDashboard size={20} /> },
+    { name: "Dashboard", path: "/dashboard", icon: <LayoutDashboard size={20} /> },
     { name: "Jobs Aggregator", path: "/jobs", icon: <Briefcase size={20} /> },
     { name: "App Tracker", path: "/kanban", icon: <Trello size={20} /> },
     { name: "Resume & Cover", path: "/resume", icon: <FileText size={20} /> },
@@ -19,12 +20,12 @@ const Sidebar = () => {
 
   return (
     <div className="w-64 bg-white border-r border-border h-screen sticky top-0 flex flex-col p-4 shadow-sm">
-      <div className="flex items-center gap-3 px-4 py-6 mb-4 border-b border-border/50">
+      <Link to="/" className="flex items-center gap-3 px-4 py-6 mb-4 border-b border-border/50 hover:opacity-80 transition-opacity">
         <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-white font-bold text-xl">
           J
         </div>
         <h1 className="text-xl font-heading font-bold text-foreground">AI Job Hunter</h1>
-      </div>
+      </Link>
       
       <nav className="flex-1 space-y-1.5">
         {navItems.map((item) => {
@@ -64,7 +65,7 @@ const Sidebar = () => {
   );
 };
 
-const Layout = ({ children }) => {
+const AppLayout = ({ children }) => {
   return (
     <div className="flex min-h-screen bg-surface_alt font-body">
       <Sidebar />
@@ -80,15 +81,17 @@ const Layout = ({ children }) => {
 function App() {
   return (
     <BrowserRouter>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/jobs" element={<Jobs />} />
-          <Route path="/kanban" element={<Kanban />} />
-          <Route path="/resume" element={<Resume />} />
-          <Route path="/interview" element={<Interview />} />
-        </Routes>
-      </Layout>
+      <Routes>
+        {/* Landing Page has NO Sidebar */}
+        <Route path="/" element={<Landing />} />
+        
+        {/* Dashboard Routes HAVE Sidebar */}
+        <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
+        <Route path="/jobs" element={<AppLayout><Jobs /></AppLayout>} />
+        <Route path="/kanban" element={<AppLayout><Kanban /></AppLayout>} />
+        <Route path="/resume" element={<AppLayout><Resume /></AppLayout>} />
+        <Route path="/interview" element={<AppLayout><Interview /></AppLayout>} />
+      </Routes>
     </BrowserRouter>
   );
 }

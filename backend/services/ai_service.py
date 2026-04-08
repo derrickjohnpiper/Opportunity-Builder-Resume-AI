@@ -1,56 +1,30 @@
-import httpx
-import logging
-import json
 import os
 import re
+import logging
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 logger = logging.getLogger(__name__)
 
 class AIService:
     def __init__(self):
-        # We will try Ollama locally first, if it fails, fallback to Emergent LLM Key (OpenAI)
-        self.ollama_url = "http://localhost:11434"
-        self.ollama_model = "gemma:2b"
         self.emergent_key = os.environ.get("EMERGENT_LLM_KEY", "sk-emergent-4D336BeF76179Fc8cB")
-        self.openai_url = "https://api.openai.com/v1/chat/completions"
-        self.timeout = 15.0
-
+        self.session_id = "ai-job-hunter-session"
+        
     async def _generate(self, prompt: str, system_prompt: str = "You are a helpful AI assistant.") -> str:
-        """Helper to generate text, trying Ollama then falling back to OpenAI/Emergent"""
-        
-        # Fallback directly for reliability in this environment
-        headers = {
-            "Authorization": f"Bearer {self.emergent_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.7
-        }
-        
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(self.openai_url, json=payload, headers=headers, timeout=30.0)
-                response.raise_for_status()
-                data = response.json()
-                return data["choices"][0]["message"]["content"]
-            except Exception as e:
-                logger.error(f"AI Generation failed: {e}")
-                # Return mock responses for testing purposes
-                if "resume" in prompt.lower():
-                    return "**OPTIMIZED RESUME**\n\nJohn Doe\nSenior Software Engineer\n\n• 5+ years of experience in React, Node.js, and Python\n• Led cross-functional teams of 5+ developers\n• Architected scalable cloud solutions\n• Expert in full-stack development"
-                elif "cover" in prompt.lower():
-                    return "Dear Hiring Manager,\n\nI am excited to apply for the Senior Developer position. With my 5 years of experience in web development and expertise in React, Node.js, and Python, I am confident I can contribute to your team's success.\n\nBest regards,\nJohn Doe"
-                elif "question" in prompt.lower():
-                    return "Tell me about your experience with React and Node.js development."
-                elif "score" in prompt.lower() or "feedback" in prompt.lower():
-                    return "SCORE: 8\nFEEDBACK: Good technical answer. Consider providing more specific examples of your achievements."
-                else:
-                    return f"Mock AI response for: {prompt[:50]}..."
+        """Generate text using Emergent's universal key and LLM Chat integration"""
+        try:
+            chat = LlmChat(
+                api_key=self.emergent_key,
+                session_id=self.session_id,
+                system_message=system_prompt
+            ).with_model("openai", "gpt-4o-mini")
+            
+            user_message = UserMessage(text=prompt)
+            response = await chat.send_message(user_message)
+            return response
+        except Exception as e:
+            logger.error(f"AI Generation failed: {e}")
+            return f"Error generating response: {str(e)}"
 
     async def calculate_compatibility(self, resume: str, job_desc: str) -> int:
         prompt = f"Resume:\n{resume}\n\nJob Description:\n{job_desc}\n\nScore the compatibility of this resume against the job description from 0 to 100. Return ONLY the integer score."
