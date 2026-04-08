@@ -10,8 +10,8 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
 
   const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || "https://qlvaoybdabptmgamagdz.supabase.co",
-    import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY || "sb_publishable_gRJyuc3yP671vyADEi8XjQ_Nf9hbHqE"
+    process.env.REACT_APP_SUPABASE_URL || "https://qlvaoybdabptmgamagdz.supabase.co",
+    process.env.REACT_APP_SUPABASE_ANON_KEY || "sb_publishable_gRJyuc3yP671vyADEi8XjQ_Nf9hbHqE"
   );
 
   useEffect(() => {
