@@ -1,0 +1,160 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+import { Sparkles, Loader2, Save, FileText } from 'lucide-react';
+import { Toaster, toast } from 'sonner';
+
+const API = process.env.REACT_APP_BACKEND_URL + '/api';
+
+export default function Resume() {
+  const [formData, setFormData] = useState({
+    original_resume: '',
+    target_job_description: '',
+    hiring_manager_linkedin: ''
+  });
+  
+  const [loadingType, setLoadingType] = useState(null); // 'resume' or 'cover'
+  const [result, setResult] = useState('');
+  const [activeTab, setActiveTab] = useState('resume');
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleGenerate = async (type) => {
+    if (!formData.original_resume || !formData.target_job_description) {
+      toast.error('Resume and Job Description are required.');
+      return;
+    }
+    
+    setLoadingType(type);
+    setResult('');
+    setActiveTab(type);
+    
+    try {
+      const endpoint = type === 'resume' ? '/resume/optimize' : '/resume/cover-letter';
+      const res = await axios.post(`${API}${endpoint}`, formData);
+      setResult(type === 'resume' ? res.data.optimized_resume : res.data.cover_letter);
+      toast.success(`Successfully generated ${type === 'resume' ? 'Optimized Resume' : 'Cover Letter'}`);
+    } catch (err) {
+      toast.error('Failed to generate.');
+      console.error(err);
+    } finally {
+      setLoadingType(null);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-8rem)] animate-in fade-in duration-500">
+      <Toaster position="top-right" />
+      
+      {/* Input Section */}
+      <div className="flex flex-col h-full bg-white border border-border rounded-md shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-border bg-surface">
+            <h2 className="text-2xl font-bold text-foreground">AI Career Coach</h2>
+            <p className="text-muted-foreground text-sm mt-1">Tailor your profile to pass ATS checks and match manager personality.</p>
+        </div>
+        
+        <div className="p-6 flex-1 overflow-y-auto space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Original Resume</label>
+            <textarea 
+              name="original_resume"
+              value={formData.original_resume}
+              onChange={handleChange}
+              className="w-full h-32 bg-white border border-border/60 rounded-md p-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+              placeholder="Paste your base resume text here..."
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Target Job Description</label>
+            <textarea 
+              name="target_job_description"
+              value={formData.target_job_description}
+              onChange={handleChange}
+              className="w-full h-32 bg-white border border-border/60 rounded-md p-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+              placeholder="Paste the job description you are targeting..."
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Hiring Manager LinkedIn (Optional)</label>
+            <textarea 
+              name="hiring_manager_linkedin"
+              value={formData.hiring_manager_linkedin}
+              onChange={handleChange}
+              className="w-full h-20 bg-white border border-border/60 rounded-md p-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+              placeholder="Paste LinkedIn About/Posts to adapt the tone to their personality..."
+            />
+          </div>
+        </div>
+        
+        <div className="p-6 border-t border-border bg-surface flex gap-4">
+            <button 
+                onClick={() => handleGenerate('resume')}
+                disabled={loadingType !== null}
+                className="flex-1 bg-primary text-white py-2.5 rounded-md font-medium hover:bg-primary-hover transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+                {loadingType === 'resume' ? <Loader2 className="animate-spin w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+                Optimize Resume
+            </button>
+            <button 
+                onClick={() => handleGenerate('cover')}
+                disabled={loadingType !== null}
+                className="flex-1 bg-white border border-primary text-primary py-2.5 rounded-md font-medium hover:bg-surface_alt transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+                {loadingType === 'cover' ? <Loader2 className="animate-spin w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                Write Cover Letter
+            </button>
+        </div>
+      </div>
+      
+      {/* Output Section */}
+      <div className="flex flex-col h-full bg-white border border-border rounded-md shadow-sm overflow-hidden">
+        <div className="flex border-b border-border bg-surface">
+            <button 
+                className={`flex-1 py-4 font-medium text-sm transition-colors border-b-2 ${activeTab === 'resume' ? 'border-primary text-primary bg-white' : 'border-transparent text-muted-foreground hover:bg-surface_alt'}`}
+                onClick={() => setActiveTab('resume')}
+            >
+                Optimized Resume
+            </button>
+            <button 
+                className={`flex-1 py-4 font-medium text-sm transition-colors border-b-2 ${activeTab === 'cover' ? 'border-primary text-primary bg-white' : 'border-transparent text-muted-foreground hover:bg-surface_alt'}`}
+                onClick={() => setActiveTab('cover')}
+            >
+                Cover Letter
+            </button>
+        </div>
+        
+        <div className="flex-1 p-6 overflow-y-auto bg-surface_alt/30 font-body relative">
+            {loadingType ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-10">
+                    <div className="w-16 h-16 relative">
+                        <div className="absolute inset-0 border-4 border-border rounded-full"></div>
+                        <div className="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
+                    </div>
+                    <p className="mt-4 font-medium text-primary animate-pulse">AI Agent is writing...</p>
+                </div>
+            ) : result ? (
+                <div className="whitespace-pre-wrap text-foreground leading-relaxed text-sm">
+                    {result}
+                </div>
+            ) : (
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+                    <FileText className="w-16 h-16 mb-4 opacity-20" />
+                    <p>Generated content will appear here.</p>
+                </div>
+            )}
+        </div>
+        
+        <div className="p-4 border-t border-border bg-white text-right">
+            <button className="bg-surface border border-border text-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-surface_alt transition-colors inline-flex items-center gap-2">
+                <Save className="w-4 h-4" />
+                Save to Database
+            </button>
+        </div>
+      </div>
+
+    </div>
+  );
+}
