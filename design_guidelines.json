@@ -1,0 +1,104 @@
+{
+  "theme": "Archetype 4: Swiss & High-Contrast (Light Theme) with Warm Accents",
+  "rationale": "The app requires the sharp, professional, authoritative tone of 'Archetype 4' to handle ATS optimization and career tracking, combined with warm terracotta and sage accents to fulfill the user's 'warm, caring, yet direct' coaching style. It creates a high-trust, technical, but human-centered environment.",
+  "colors": {
+    "background": "#FFFFFF",
+    "surface": "#F9FAFB",
+    "surface_alt": "#F3F4F6",
+    "text_primary": "#0F1115",
+    "text_secondary": "#4B5563",
+    "primary": "#1D3557",
+    "primary_hover": "#2A4B7C",
+    "accent_warm": "#E07A5F",
+    "accent_success": "#2A9D8F",
+    "accent_warning": "#E9C46A",
+    "border": "rgba(15, 17, 21, 0.12)"
+  },
+  "typography": {
+    "heading_font": "Cabinet Grotesk",
+    "body_font": "IBM Plex Sans",
+    "scales": {
+      "h1": "text-4xl sm:text-5xl font-bold tracking-tight text-[#0F1115] leading-none",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight text-[#0F1115] leading-tight",
+      "h3": "text-xl sm:text-2xl font-semibold text-[#0F1115]",
+      "h4": "text-lg sm:text-xl font-medium text-[#0F1115]",
+      "body": "text-base text-[#4B5563] leading-relaxed",
+      "small": "text-sm text-[#4B5563]",
+      "overline": "text-xs font-bold uppercase tracking-[0.2em] text-[#4B5563]"
+    }
+  },
+  "spacing_and_layout": {
+    "philosophy": "Generous spacing. The 'Control Room' grid for the dashboard. Crisp, technical alignments.",
+    "container_padding": "p-6 md:p-8 lg:p-12",
+    "grid_dashboard": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+    "grid_kanban": "grid grid-cols-1 md:grid-cols-3 gap-6",
+    "alignment": "Left-align forms, data, and dense text. Center-align only for empty states and hero onboarding.",
+    "radius": "rounded-md (subtle roundness, maximum 6px for a crisp, structural feel)"
+  },
+  "components": {
+    "cards": {
+      "default": "bg-white border border-[#0F1115]/10 rounded-md p-6",
+      "hover": "transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-[#0F1115]/30"
+    },
+    "buttons": {
+      "primary": "bg-[#1D3557] text-white font-medium rounded-md px-6 py-2 hover:bg-[#2A4B7C] transition-colors",
+      "secondary": "bg-white text-[#0F1115] border border-[#0F1115]/20 font-medium rounded-md px-6 py-2 hover:bg-[#F3F4F6] transition-colors",
+      "accent": "bg-[#E07A5F] text-white font-medium rounded-md px-6 py-2 hover:bg-[#D0694E] transition-colors"
+    },
+    "inputs": {
+      "style": "bg-white border border-[#0F1115]/20 rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1D3557] focus:border-transparent transition-all",
+      "label": "block text-sm font-medium text-[#0F1115] mb-1.5"
+    },
+    "video_interview_interface": {
+      "container": "relative w-full max-w-5xl mx-auto rounded-lg overflow-hidden bg-black/5",
+      "glass_overlay": "absolute bottom-6 left-1/2 -translate-x-1/2 backdrop-blur-xl bg-black/60 border border-white/20 rounded-full px-8 py-4 flex items-center gap-6",
+      "agent_feedback_panel": "absolute top-6 right-6 backdrop-blur-xl bg-white/90 border border-black/10 rounded-md p-4 w-80 shadow-2xl"
+    },
+    "badges": {
+      "score_high": "bg-[#2A9D8F]/10 text-[#2A9D8F] border border-[#2A9D8F]/20 rounded-full px-3 py-1 text-xs font-bold",
+      "score_medium": "bg-[#E9C46A]/10 text-[#D4A373] border border-[#E9C46A]/20 rounded-full px-3 py-1 text-xs font-bold"
+    }
+  },
+  "animations": {
+    "hover": "transition-all duration-200 ease-in-out",
+    "list_stagger": "framer-motion with staggerChildren: 0.1 for kanban cards and job lists",
+    "page_transition": "opacity 0.3s ease-in, translateY 10px to 0",
+    "video_audio_waves": "Subtle scale pulsing on the AI agent's avatar during speech (framer-motion repeat: Infinity)"
+  },
+  "icons_and_assets": {
+    "icon_library": "lucide-react",
+    "illustrations": "Minimalist geometric shapes and professional headshots. No vector cliparts."
+  },
+  "image_urls": [
+    {
+      "category": "ai_agent_avatar",
+      "description": "Abstract AI representation for the Resume Specialist/Coach",
+      "url": "https://images.unsplash.com/photo-1770233621425-5d9ee7a0a700?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTV8MHwxfHNlYXJjaHwxfHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlJTIwYnJhaW4lMjBhYnN0cmFjdHxlbnwwfHx8fDE3NzU2NDU0MTB8MA&ixlib=rb-4.1.0&q=85"
+    },
+    {
+      "category": "hiring_manager_avatar_1",
+      "description": "Professional male interviewer",
+      "url": "https://images.unsplash.com/photo-1576558656222-ba66febe3dec?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3NTY0NTM5N3ww&ixlib=rb-4.1.0&q=85"
+    },
+    {
+      "category": "hiring_manager_avatar_2",
+      "description": "Professional female interviewer",
+      "url": "https://images.unsplash.com/photo-1769636929388-99eff95d3bf1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3NTY0NTM5N3ww&ixlib=rb-4.1.0&q=85"
+    },
+    {
+      "category": "empty_state_background",
+      "description": "Minimalist geometric pattern for dashboard empty state backgrounds",
+      "url": "https://images.pexels.com/photos/3137073/pexels-photo-3137073.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    }
+  ],
+  "instructions_to_main_agent": [
+    "Use ONLY Javascript (.js, .jsx) files, NO Typescript.",
+    "Do NOT use 'Inter', 'Roboto', or 'Open Sans'. Use 'Cabinet Grotesk' for headings and 'IBM Plex Sans' for body text. Import them via Google Fonts or Fontshare.",
+    "Implement the 'Control Room' grid for the dashboard: grid-cols-1 md:grid-cols-3 lg:grid-cols-4 with gap-6.",
+    "Use purely HTML + Tailwind for marketing/landing structural elements, but use heavily customized Shadcn UI for the dashboard tools (Select, Dialog, Form).",
+    "For the Video Mock Interview screen, prioritize an orchestration layout: the camera feed should be the primary background, with an absolute-positioned glassmorphism dock for controls (mic, end call), and a floating side panel for real-time AI feedback and notes.",
+    "Every interactive element (buttons, forms, links, kanban cards) MUST have a `data-testid` attribute using kebab-case role-based naming (e.g., `data-testid=\"start-interview-button\"`).",
+    "Never use via.placeholder.com or placeholder images. Use ONLY the URLs provided in the `image_urls` array.",
+    "Ensure hover states explicitly declare text colors (e.g., `hover:bg-[#1D3557] hover:text-white`)."
+  ]
+}
