@@ -1,0 +1,73 @@
+/*
+  Opportunity Builder Resume AI - Traditional Professional Theme
+  -------------------------------------------------------------
+  A refined, authoritative aesthetic designed for strategic excellence.
+*/
+
+:root {
+  /* Core Brand Colors (Legacy Palette) */
+  --color-primary-bg: #1A1A1A;     /* Deep Charcoal - Strong Foundation */
+  --color-accent-dark: #0B132B;    /* Midnight Navy - Command & Trust */
+  --color-brand-accent: #00A3CC;   /* Muted Professional Cyan (Refined Accent) */
+  --color-text-main: #F4F4F4;      /* Off-White - Classic Paper Feel */
+  --color-text-muted: #B0B0B0;     /* Slate Gray - Subdued Details */
+  
+  /* Traditional UI Elements */
+  --bg-solid: #1A1A1A;
+  --border-classic: 1px solid rgba(176, 176, 176, 0.3);
+  --shadow-subtle: 0 4px 6px rgba(0, 0, 0, 0.1);
+  
+  /* Typography - Legacy Serif & Authoritative Humanist */
+  --font-main: 'Lora', 'Georgia', serif; /* Classic Reading Experience */
+  --font-display: 'Playfair Display', serif; /* Distinguished Headlines */
+}
+
+/* Base Styles (Refined Professional implementation) */
+body {
+  background-color: var(--color-primary-bg);
+  color: var(--color-text-main);
+  font-family: var(--font-main);
+  line-height: 1.8; /* More generous spacing for traditional readability */
+  margin: 0;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-text-main);
+}
+
+.authoritative-card {
+  background: var(--bg-solid);
+  border: var(--border-classic);
+  border-radius: 4px; /* Sharper, more traditional corners */
+  padding: 2.5rem;
+  box-shadow: var(--shadow-subtle);
+}
+
+.accent-line {
+  height: 2px;
+  background: var(--color-brand-accent);
+  width: 50px;
+  margin: 1.5rem 0;
+}
+
+.cta-button-traditional {
+  background: transparent;
+  color: var(--color-brand-accent);
+  padding: 0.75rem 2rem;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  border: 2px solid var(--color-brand-accent);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cta-button-traditional:hover {
+  background: var(--color-brand-accent);
+  color: var(--color-primary-bg);
+  box-shadow: none; /* Traditional focus on color inversion not glow */
+}
