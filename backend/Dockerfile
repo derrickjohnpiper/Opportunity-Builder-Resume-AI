@@ -36,7 +36,7 @@ RUN curl -sSL https://dl.google.com/linux/direct/google-chrome-stable_current_am
 WORKDIR /app
 
 # Copy requirements and install
-COPY backend/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install SeleniumBase drivers
