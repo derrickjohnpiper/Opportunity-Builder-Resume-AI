@@ -1,7 +1,11 @@
+Have you ever used a job hunting software which met ALL of your job-searching needs, and made finding a job a less stressful endevour?
+
+WELCOME TO
 # Opportunity Builder Resume AI ⚖️
 
 ![Opportunity Builder Logo](logo.png)
 
+Have you ever4 used a job hunting softwarer whichy metall of your needs nand made job huntngh a bvery easy process?
 > **"Professional Excellence. AI Precision. The Architecture of Your Next Opportunity."**
 
 **Opportunity Builder Resume AI** is an authoritative, high-performance suite designed for the modern professional. We provide a **Strategic One-Stop Shop** for all resume architectural, job hunting, and candidate sourcing needs.
