@@ -21,6 +21,8 @@ RUN npm run build
 FROM python:3.11-slim
 
 # Install system dependencies for Chrome and Selenium
+# Using --no-install-recommends and explicit versions to avoid broken packages
+# libappindicator3-1 and libasound2 were renamed/removed in Debian Bookworm
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -35,21 +37,21 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxrandr2 \
     libgbm1 \
-    libasound2 \
     libpangocairo-1.0-0 \
     libxshmfence1 \
     libxkbcommon0 \
     fonts-liberation \
-    libappindicator3-1 \
     lsb-release \
     xdg-utils \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Google Chrome
+# Install Google Chrome stable via official method
 RUN curl -sSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o chrome.deb \
-    && apt-get update && apt-get install -y ./chrome.deb \
-    && rm chrome.deb
+    && apt-get update \
+    && apt-get install -y --fix-broken ./chrome.deb \
+    && rm chrome.deb \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory
 WORKDIR /app
@@ -66,6 +68,9 @@ COPY backend/ .
 
 # Copy the compiled React app from Stage 1 → FastAPI will serve it from /app/static/
 COPY --from=frontend-builder /frontend-build/dist ./static
+
+# Sanity check: list what's in /app at build time so we can verify in logs
+RUN echo "=== /app contents ===" && ls -la /app/ && echo "=== /app/static contents ===" && ls /app/static/ || echo "WARNING: /app/static is empty or missing!"
 
 # Expose the port
 EXPOSE 8001

@@ -454,6 +454,34 @@ async def check_status(session_id: str):
 async def handle_stripe_webhook(request: Request):
     raise HTTPException(status_code=501, detail="Payments disabled in local offline edition")
 
+
+@api_router.get("/debug/env")
+async def debug_env():
+    """Debug endpoint to inspect the server filesystem state on Render."""
+    import subprocess
+    static_path = Path(__file__).resolve().parent / "static"
+    app_path = Path(__file__).resolve().parent
+    
+    try:
+        app_listing = list(str(p) for p in app_path.iterdir())
+    except Exception as e:
+        app_listing = [f"Error: {e}"]
+    
+    try:
+        static_listing = list(str(p) for p in static_path.iterdir()) if static_path.exists() else ["directory does not exist"]
+    except Exception as e:
+        static_listing = [f"Error: {e}"]
+    
+    return {
+        "server_file": str(Path(__file__).resolve()),
+        "app_dir": str(app_path),
+        "static_dir": str(static_path),
+        "static_exists": static_path.exists(),
+        "app_contents": app_listing,
+        "static_contents": static_listing,
+    }
+
+
 app.include_router(api_router)
 
 
@@ -465,12 +493,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 # ---------------------------------------------------------------------------
 # Serve the compiled React frontend (placed in /app/static/ by the Dockerfile)
 # ---------------------------------------------------------------------------
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 static_dir = Path(__file__).resolve().parent / "static"
 
 logger.info(f"Checking for static directory at: {static_dir}")
@@ -478,12 +506,18 @@ logger.info(f"Checking for static directory at: {static_dir}")
 if static_dir.exists():
     logger.info("Static directory found. Mounting /assets and registering SPA catch-all.")
     # Serve hashed JS/CSS bundles from /assets/
-    app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="static-assets")
+    assets_dir = static_dir / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="static-assets")
+
+    @app.get("/")
+    async def serve_root():
+        """Explicitly handle root to avoid FastAPI 404."""
+        return FileResponse(str(static_dir / "index.html"))
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
         """Catch-all: serve specific static files or fall back to index.html for SPA routing."""
-        # Clean up path to avoid directory traversal
         path = full_path.lstrip('/')
         file_path = static_dir / path
         
@@ -499,8 +533,18 @@ if static_dir.exists():
 else:
     logger.warning(f"Static directory NOT found at {static_dir}. Frontend will not be served.")
 
+    @app.get("/")
+    async def root_fallback():
+        """Fallback when static dir is missing — gives a helpful error instead of 404."""
+        return {
+            "status": "backend running",
+            "error": "Frontend static files not found",
+            "static_dir_checked": str(static_dir),
+            "hint": "Check /api/debug/env for filesystem state"
+        }
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8001))
     uvicorn.run("server:app", host="0.0.0.0", port=port, reload=True)
-
