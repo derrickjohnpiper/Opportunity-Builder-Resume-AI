@@ -1,18 +1,24 @@
 region: oregon
 services:
-  # Single Docker service: Python backend + compiled React frontend
-  # The Dockerfile is a multi-stage build that compiles the React app
-  # and serves it directly from FastAPI — no separate static site needed.
   - type: web
     name: opportunity-builder-resume-ai
-    env: docker
-    dockerContext: .         # Repo root — needed so Docker can COPY frontend/
-    dockerfilePath: Dockerfile  # Root-level multi-stage Dockerfile
+    env: python
+    pythonVersion: "3.11.0"
     plan: free
+    # Build: compile the React frontend first, then copy it where FastAPI expects it,
+    # then install Python deps. Render runs this from the repo root.
+    buildCommand: >
+      npm install --prefix frontend &&
+      npm run build --prefix frontend &&
+      cp -r frontend/dist backend/static &&
+      pip install -r requirements.txt &&
+      sbase install chromedriver
+    # Start: run uvicorn from inside the backend folder so local imports (db, services/) resolve
+    startCommand: cd backend && uvicorn server:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_PATH
-        value: /app/database.db
+        value: /opt/render/project/src/backend/database.db
       - key: CORS_ORIGINS
         value: "*"
       - key: GROK_API_KEY
-        sync: false  # Set this secret in the Render Dashboard → Environment
+        sync: false  # Set this secret in Render Dashboard → Environment
