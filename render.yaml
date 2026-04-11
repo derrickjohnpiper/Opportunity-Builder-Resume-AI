@@ -1,34 +1,18 @@
 region: oregon
 services:
-  # Python Backend (Web Service)
+  # Single Docker service: Python backend + compiled React frontend
+  # The Dockerfile is a multi-stage build that compiles the React app
+  # and serves it directly from FastAPI — no separate static site needed.
   - type: web
-    name: opportunity-builder-api
+    name: opportunity-builder-resume-ai
     env: docker
-    dockerContext: .
-    dockerfilePath: backend/Dockerfile
-    plan: free # Can be upgraded to starter for persistent disk
+    dockerContext: .         # Repo root — needed so Docker can COPY frontend/
+    dockerfilePath: Dockerfile  # Root-level multi-stage Dockerfile
+    plan: free
     envVars:
       - key: DATABASE_PATH
-        value: /app/database.db # Disk storage disabled for Free tier
+        value: /app/database.db
       - key: CORS_ORIGINS
-        value: "*" # Update this to your frontend URL later for better security
+        value: "*"
       - key: GROK_API_KEY
-        sync: false # Set this in the Render Dashboard
-    # disk:
-    #   name: database-storage
-    #   mountPath: /data
-    #   sizeGB: 1
-
-  # React Frontend (Static Site)
-  - type: static
-    name: opportunity-builder-app
-    env: static
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    publishPath: dist
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: opportunity-builder-api
-          property: host
+        sync: false  # Set this secret in the Render Dashboard → Environment

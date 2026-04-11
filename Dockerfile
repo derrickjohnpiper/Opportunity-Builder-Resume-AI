@@ -1,4 +1,23 @@
-# Use an official Python runtime as a parent image
+# =============================================================================
+# Stage 1: Build the React frontend
+# =============================================================================
+FROM node:20-slim AS frontend-builder
+
+WORKDIR /frontend-build
+
+# Install dependencies first (better Docker layer caching)
+COPY frontend/package*.json ./
+RUN npm install
+
+# Copy the rest of the frontend source and build
+# No VITE_BASE_URL → base defaults to "/" (Render serves from root)
+COPY frontend/ ./
+RUN npm run build
+
+
+# =============================================================================
+# Stage 2: Python backend + compiled frontend
+# =============================================================================
 FROM python:3.11-slim
 
 # Install system dependencies for Chrome and Selenium
@@ -35,19 +54,21 @@ RUN curl -sSL https://dl.google.com/linux/direct/google-chrome-stable_current_am
 # Set the working directory
 WORKDIR /app
 
-# Copy requirements and install
+# Copy Python requirements and install
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install SeleniumBase drivers
 RUN sbase install chromedriver
 
-# Copy the rest of the application
+# Copy the backend source code
 COPY backend/ .
+
+# Copy the compiled React app from Stage 1 → FastAPI will serve it from /app/static/
+COPY --from=frontend-builder /frontend-build/dist ./static
 
 # Expose the port
 EXPOSE 8001
 
-# Command to run the application
-# We use uvicorn directly to handle the binding to $PORT correctly
+# Start the server
 CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port ${PORT:-8001}"]

@@ -1,4 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
@@ -464,6 +466,24 @@ app.add_middleware(
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Serve the compiled React frontend (placed in /app/static/ by the Dockerfile)
+# ---------------------------------------------------------------------------
+static_dir = Path(__file__).parent / "static"
+
+if static_dir.exists():
+    # Serve hashed JS/CSS bundles from /assets/
+    app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="static-assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        """Catch-all: serve specific static files or fall back to index.html for SPA routing."""
+        file_path = static_dir / full_path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+        # Default: return the SPA shell so React Router can handle the path
+        return FileResponse(str(static_dir / "index.html"))
 
 if __name__ == "__main__":
     import uvicorn

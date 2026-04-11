@@ -1,0 +1,77 @@
+name: Deploy Frontend to GitHub Pages
+
+# Runs automatically on every push to main
+on:
+  push:
+    branches:
+      - main
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+
+# GitHub Pages deployment requires these permissions
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only allow one deployment at a time
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      # 1. Check out the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      # 3. Install frontend dependencies
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      # 4. Build the React app for GitHub Pages
+      #    - VITE_BASE_URL sets the subpath so asset links in index.html are correct
+      #    - VITE_API_URL points the app to the live Render backend
+      - name: Build for GitHub Pages
+        working-directory: ./frontend
+        env:
+          VITE_BASE_URL: /Opportunity-Builder-Resume-AI/
+          VITE_API_URL: https://opportunity-builder-resume-ai.onrender.com/api
+          VITE_SUPABASE_URL: https://qlvaoybdabptmgamagdz.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_gRJyuc3yP671vyADEi8XjQ_Nf9hbHqE
+        run: npm run build
+
+      # 5. Add a 404.html fallback so React Router works when the page is refreshed
+      #    (GitHub Pages doesn't know about single-page app routes)
+      - name: Add SPA 404 fallback
+        run: cp frontend/dist/index.html frontend/dist/404.html
+
+      # 6. Configure GitHub Pages
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v4
+
+      # 7. Upload the built frontend as the Pages artifact
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./frontend/dist
+
+      # 8. Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

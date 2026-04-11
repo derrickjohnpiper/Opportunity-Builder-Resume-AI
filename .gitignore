@@ -28,3 +28,9 @@ scraper_debug.log
 Thumbs.db
 .vscode/
 .antigravity/
+
+# Downloaded/extracted library artifacts
+granian-*/
+downloaded_files/
+markers/
+scratch/
