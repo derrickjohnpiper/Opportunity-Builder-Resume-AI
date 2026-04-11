@@ -47,7 +47,10 @@ class Job(BaseModel):
     user_id: Optional[str] = None
     title: str
     company: str
+    location: Optional[str] = None
     description: str
+    source: Optional[str] = None
+    salary: Optional[str] = None
     posted_date: str
     status: str = "pending_review"
     compatibility_score: Optional[int] = None
@@ -193,16 +196,27 @@ async def aggregate_jobs(request: dict):
 
     conn = get_connection()
     jobs_added = []
+    
     for s_job in scraped_jobs:
+        # Check for duplicates: Title + Company + Location
+        c = conn.cursor()
+        c.execute("SELECT id FROM jobs WHERE title = ? AND company = ? AND location = ?", 
+                  (s_job["title"], s_job["company"], s_job["location"]))
+        if c.fetchone():
+            continue # Skip duplicate
+            
         job = Job(
             user_id=user_id, 
             title=s_job["title"], 
             company=s_job["company"], 
+            location=s_job["location"],
             description=s_job["description"], 
+            source=s_job.get("source", "Indeed"),
+            salary=s_job.get("salary"),
             posted_date=s_job["posted_date"]
         )
-        conn.execute("INSERT INTO jobs (id, user_id, title, company, description, posted_date) VALUES (?, ?, ?, ?, ?, ?)",
-            (job.id, job.user_id, job.title, job.company, job.description, job.posted_date))
+        conn.execute("INSERT INTO jobs (id, user_id, title, company, location, description, source, salary, posted_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (job.id, job.user_id, job.title, job.company, job.location, job.description, job.source, job.salary, job.posted_date))
         jobs_added.append(job.model_dump())
         
     conn.commit()

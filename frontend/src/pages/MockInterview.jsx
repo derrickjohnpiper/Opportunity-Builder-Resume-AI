@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Camera, Mic, PhoneOff, CheckCircle } from 'lucide-react';
 
-export default function MockInterview() {
+export default function InterviewPractice() {
   const videoRef = useRef(null);
   const [stream, setStream] = useState(null);
   const [inCall, setInCall] = useState(false);
@@ -26,7 +26,7 @@ export default function MockInterview() {
       setTranscript("Tell me about a time you handled a difficult situation."); // Mock initial Grok question
     } catch (err) {
       console.error("Failed to access media devices", err);
-      alert("Please allow camera and microphone permissions to start the mock interview.");
+      alert("Please allow camera and microphone permissions to start the interview practice session.");
     }
   };
 
@@ -44,7 +44,7 @@ export default function MockInterview() {
     <Layout>
       <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem', background: 'linear-gradient(to right, #818cf8, #c084fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          Mock Interview Theater
+          Interview Practice Theater
         </h1>
         <p style={{ marginBottom: '2rem', color: 'var(--text-muted)' }}>Simulate a video call interview. Grok will analyze your answers and professional demeanor.</p>
 

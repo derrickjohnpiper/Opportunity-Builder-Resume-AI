@@ -17,7 +17,7 @@ export default function Sidebar() {
     { name: 'Insights', path: '/insights', icon: BrainCircuit },
     { name: 'Resumes', path: '/resume', icon: FileText },
     { name: 'Cover Letters', path: '/cover-letter', icon: Mail },
-    { name: 'Mock Interview', path: '/interview', icon: Video },
+    { name: 'Interview Practice', path: '/interview', icon: Video },
   ];
 
   return (

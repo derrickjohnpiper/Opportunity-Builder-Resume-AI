@@ -17,14 +17,14 @@ export default function Dashboard() {
   
   // Auto-scoring State
   const [baseResume, setBaseResume] = useState('');
-  const [scoringJobs, setScoringJobs] = useState(new Set());
 
   // Filters State
   const [filters, setFilters] = useState({
     keywords: '',
     city: '',
     state: '',
-    salary_min: ''
+    salary_min: '',
+    job_boards: ['Indeed', 'LinkedIn', 'Glassdoor', 'Google']
   });
 
   useEffect(() => {
@@ -78,37 +78,14 @@ export default function Dashboard() {
     }
   };
 
-  const scoreJob = async (jobId) => {
-    setScoringJobs(prev => new Set(prev).add(jobId));
-    try {
-      const res = await fetch(`${API_BASE_URL}/jobs/${jobId}/score`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resume_text: baseResume })
-      });
-      const data = await res.json();
-      
-      setJobs(prevJobs => prevJobs.map(j => j.id === jobId ? { ...j, compatibility_score: data.score } : j));
-    } catch(e) {
-      console.error(e);
-    }
-    setScoringJobs(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(jobId);
-      return newSet;
-    });
-  };
 
-  useEffect(() => {
-    if (baseResume && jobs.length > 0) {
-      const unscored = jobs.find(j => j.compatibility_score === null && !scoringJobs.has(j.id));
-      if (unscored) {
-        scoreJob(unscored.id);
-      }
-    }
-  }, [jobs, baseResume, scoringJobs]);
 
   const handleScan = async () => {
+    if (!baseResume || !baseResume.trim()) {
+      setError("Please save your resume content first to enable comparison scoring.");
+      return;
+    }
+    
     setScanning(true);
     setError(null);
     try {
@@ -219,8 +196,8 @@ export default function Dashboard() {
 
       {/* Base Resume Box */}
       <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: '500', marginBottom: '0.5rem' }}>Auto-Scoring Resume Context</h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1rem' }}>Paste your current resume here to automatically grade all incoming job opportunities in your feed.</p>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: '500', marginBottom: '0.5rem' }}>Comparison Score for Resume Content</h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1rem' }}>Paste resume info below and save. When already enter search filters and click scan now</p>
         <textarea 
           value={baseResume}
           onChange={(e) => setBaseResume(e.target.value)}
@@ -239,7 +216,7 @@ export default function Dashboard() {
         />
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button onClick={handleSaveResume} className="btn-primary" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', border: '1px solid #10b981' }}>
-            Save Resume Context
+            Save Resume Content
           </button>
         </div>
       </div>
@@ -273,7 +250,7 @@ export default function Dashboard() {
           <input 
             type="text" 
             name="state"
-            placeholder="State / Remote" 
+            placeholder="State" 
             value={filters.state}
             onChange={handleInputChange}
             style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }} 
@@ -296,6 +273,27 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* Job Boards Filter */}
+      <div className="glass-panel" style={{ padding: '1rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1.5rem', overflowX: 'auto' }}>
+        <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Job Boards:</span>
+        {['Indeed', 'LinkedIn', 'Glassdoor', 'Google'].map(board => (
+          <label key={board} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+            <input 
+              type="checkbox" 
+              checked={filters.job_boards.includes(board)}
+              onChange={(e) => {
+                const newBoards = e.target.checked 
+                  ? [...filters.job_boards, board] 
+                  : filters.job_boards.filter(b => b !== board);
+                setFilters({ ...filters, job_boards: newBoards });
+              }}
+              style={{ accentColor: 'var(--accent)' }}
+            />
+            {board}
+          </label>
+        ))}
+      </div>
+
       {error && (
         <div className="glass-panel" style={{ padding: '0.75rem 1.5rem', marginBottom: '2rem', border: '1px solid #ef4444', background: 'rgba(239, 68, 68, 0.1)', color: '#fca5a5', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <p>{error}</p>
@@ -313,16 +311,15 @@ export default function Dashboard() {
               <div>
                 <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{job.title}</h3>
                 <p style={{ color: 'var(--accent)', fontWeight: '500', marginBottom: '0.5rem' }}>{job.company}</p>
-                <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem', alignItems: 'center' }}>
                   <span>{new Date(job.posted_date).toLocaleDateString()}</span>
-                  {scoringJobs.has(job.id) ? (
-                    <span style={{ color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <RefreshCw size={14} className="animate-spin" /> Auto-Scoring...
+                  {job.source && (
+                    <span style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                      {job.source}
                     </span>
-                  ) : (
-                    <span style={{ color: job.compatibility_score ? '#10b981' : 'var(--text-muted)' }}>
-                      {job.compatibility_score ? `${job.compatibility_score}% Match` : 'Unscored'}
-                    </span>
+                  )}
+                  {job.salary && (
+                    <span style={{ color: '#10b981', fontWeight: '500' }}>{job.salary}</span>
                   )}
                 </div>
               </div>
@@ -360,7 +357,8 @@ export default function Dashboard() {
             <p style={{ color: 'var(--accent)', fontWeight: '500', marginBottom: '0.5rem' }}>{selectedJob.company}</p>
             <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
               <span>{new Date(selectedJob.posted_date).toLocaleDateString()}</span>
-              <span>{selectedJob.compatibility_score ? `${selectedJob.compatibility_score}% Match` : 'Unscored'}</span>
+              {selectedJob.source && <span>Source: {selectedJob.source}</span>}
+              {selectedJob.salary && <span style={{ color: '#10b981' }}>{selectedJob.salary}</span>}
             </div>
             
             <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Job Description</h3>

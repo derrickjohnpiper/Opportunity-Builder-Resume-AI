@@ -8,18 +8,25 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const sessionStr = localStorage.getItem('local_session');
+    let sessionStr = localStorage.getItem('local_session');
+    
+    // Automatically create a Guest session if none exists
     if (!sessionStr) {
-      navigate('/');
-    } else {
-      try {
-        const sessionUser = JSON.parse(sessionStr);
-        setUser(sessionUser);
-      } catch(e) {
-        navigate('/');
-      }
+      const guestUser = {
+        id: 'local-user-guest',
+        name: 'Guest'
+      };
+      localStorage.setItem('local_session', JSON.stringify(guestUser));
+      sessionStr = JSON.stringify(guestUser);
     }
-  }, [navigate]);
+
+    try {
+      const sessionUser = JSON.parse(sessionStr);
+      setUser(sessionUser);
+    } catch(e) {
+      console.error("Failed to parse session", e);
+    }
+  }, []);
 
   if (!user) {
     return (

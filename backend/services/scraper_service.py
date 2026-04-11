@@ -62,28 +62,50 @@ class ScraperService:
 
                 for i, card in enumerate(job_cards[:limit]):
                     try:
-                        # Correct way to find within an element in SB
+                        # Click the card to open the description in the right pane
+                        card.click()
+                        time.sleep(random.uniform(1.0, 1.5)) # Wait for pane to load
+                        
                         title = card.find_element("css selector", "h2.jobTitle span").text
                         company = card.find_element("css selector", "[data-testid='company-name']").text
                         loc_text = card.find_element("css selector", "[data-testid='text-location']").text
                         
+                        # Extract salary if available on the card
+                        salary = None
                         try:
-                            description = card.find_element("css selector", ".under_line").text
+                            salary = card.find_element("css selector", "[data-testid='attribute_snippet_testid']").text
                         except:
-                            description = "No description available."
+                            try:
+                                salary = card.find_element("css selector", ".salary-snippet-container").text
+                            except:
+                                pass
+
+                        # Extract full description from the side panel
+                        description = "No description available."
+                        try:
+                            # Indeed description is usually in this ID after clicking
+                            sb.wait_for_element("#jobDescriptionText", timeout=5)
+                            description = sb.find_element("#jobDescriptionText").text
+                        except:
+                            # Fallback to snippet if side panel fails
+                            try:
+                                description = card.find_element("css selector", ".under_line").text
+                            except:
+                                pass
 
                         jobs.append({
                             "title": title.strip(),
                             "company": company.strip(),
-                            "description": f"Location: {loc_text.strip()}. {description.strip()}",
-                            "posted_date": time.strftime('%Y-%m-%d'),
-                            "location": loc_text.strip()
+                            "location": loc_text.strip(),
+                            "description": description.strip(),
+                            "salary": salary.strip() if salary else None,
+                            "source": "Indeed",
+                            "posted_date": time.strftime('%Y-%m-%d')
                         })
-                        logger.info(f"Scraped: {title} @ {company}")
+                        logger.info(f"Scraped Full: {title} @ {company}")
                         
-                        # Avoid rate limiting between extractions
-                        if i % 3 == 0:
-                            time.sleep(random.uniform(0.5, 1.0))
+                        # Avoid rate limiting
+                        time.sleep(random.uniform(1.0, 2.0))
                             
                     except Exception as e:
                         logger.error(f"Error parsing card {i}: {e}")
