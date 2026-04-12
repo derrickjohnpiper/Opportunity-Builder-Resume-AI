@@ -33,7 +33,7 @@ export default function Login() {
           Opportunity Builder
         </h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', textAlign: 'center' }}>
-          `Resume AI
+          Resume AI
         </p>
 
         <form onSubmit={handleLogin} style={{ width: '100%' }}>

@@ -86,7 +86,7 @@ class UserProfile(BaseModel):
     base_resume: Optional[str] = None
     personality_profile: Optional[str] = None
     linkedin_url: Optional[str] = None
-    subscription_tier: Optional[str] = 'free'
+    subscription_tier: Optional[str] = 'premium'
     weekly_goal: int = 10
 
 # --- Helper Functions ---
@@ -99,9 +99,9 @@ async def check_usage_limit(user_id: str, service_type: str) -> bool:
     c.execute("SELECT * FROM usage_logs WHERE user_id = ? AND service_type = ? AND created_at >= ?", (user_id, service_type, today_start))
     usage_logs = c.fetchall()
     
-    # Bypass subscriptions completely for local zero-setup usage
+    # Bypass limits for testing
     conn.close()
-    return len(usage_logs) < 5
+    return True
 
 async def log_usage(user_id: str, service_type: str):
     if user_id:
@@ -177,7 +177,14 @@ async def aggregate_jobs(request: dict):
     city = filters.get("city", "")
     state = filters.get("state", "")
     salary_min = filters.get("salary_min", "")
-    location = f"{city} {state}".strip() or "Remote"
+    remote_only = filters.get("remote_only", False)
+    
+    location = f"{city} {state}".strip()
+    if remote_only:
+        location = "remote"
+    elif not location:
+        location = "Remote" # Default fallback
+        
     limit = request.get("limit", 20)
     
     # Trigger REAL scraping with salary support

@@ -25,8 +25,9 @@ def init_db():
             avatar_url TEXT,
             base_resume TEXT,
             personality_profile TEXT,
-            subscription_tier TEXT DEFAULT 'free',
-            credits INTEGER DEFAULT 5,
+            subscription_tier TEXT DEFAULT 'premium',
+            weekly_goal INTEGER DEFAULT 10,
+            credits INTEGER DEFAULT 100,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 

@@ -14,7 +14,7 @@ export default function Dashboard() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [fullProfile, setFullProfile] = useState(null);
-  
+
   // Auto-scoring State
   const [baseResume, setBaseResume] = useState('');
 
@@ -24,7 +24,8 @@ export default function Dashboard() {
     city: '',
     state: '',
     salary_min: '',
-    job_boards: ['Indeed', 'LinkedIn', 'Glassdoor', 'Google']
+    remote_only: false,
+    job_boards: ['Indeed', 'LinkedIn', 'Glassdoor', 'Google', 'ZipRecruiter', 'Other']
   });
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export default function Dashboard() {
       const sessionUser = JSON.parse(sessionStr);
       setUserId(sessionUser.id);
       fetchJobs(sessionUser.id);
-      
+
       try {
         const res = await fetch(`${API_BASE_URL}/profile?user_id=${sessionUser.id}`);
         const profileData = await res.json();
@@ -45,7 +46,7 @@ export default function Dashboard() {
         if (profileData.base_resume) {
           setBaseResume(profileData.base_resume);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   };
 
@@ -73,7 +74,7 @@ export default function Dashboard() {
           subscription_tier: fullProfile?.subscription_tier || 'free'
         })
       });
-    } catch(e) {
+    } catch (e) {
       console.error(e);
     }
   };
@@ -85,7 +86,7 @@ export default function Dashboard() {
       setError("Please save your resume content first to enable comparison scoring.");
       return;
     }
-    
+
     setScanning(true);
     setError(null);
     try {
@@ -98,9 +99,9 @@ export default function Dashboard() {
           limit: 20
         })
       });
-      
+
       const data = await response.json();
-      
+
       if (response.status === 429) {
         setError(data.detail);
       } else if (data.status === 'success') {
@@ -132,7 +133,7 @@ export default function Dashboard() {
         })
       });
       if (!response.ok) throw new Error("API failure");
-      
+
       // Opt: show toast or something
       // Remote from local state:
       setJobs(prev => prev.filter(j => j.id !== job.id));
@@ -142,7 +143,7 @@ export default function Dashboard() {
     }
     setSavingJobs(prev => prev.filter(id => id !== job.id));
   };
-  
+
   const handleDeleteJob = async (jobId) => {
     try {
       await fetch(`${API_BASE_URL}/jobs/${jobId}`, { method: 'DELETE' });
@@ -161,22 +162,24 @@ export default function Dashboard() {
   const handleTogglePremium = async () => {
     if (!fullProfile) return;
     const newTier = fullProfile.subscription_tier === 'premium' ? 'free' : 'premium';
-    
+
     try {
-      await fetch('http://localhost:8001/api/profile', {
+      const response = await fetch(`${API_BASE_URL}/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: userId,
-          full_name: fullProfile.name,
+          full_name: fullProfile.name || 'Local User',
           base_resume: fullProfile.base_resume,
           personality_profile: fullProfile.personality_profile,
           subscription_tier: newTier
         })
       });
-      setFullProfile({...fullProfile, subscription_tier: newTier});
-    } catch(e) {
+      if (!response.ok) throw new Error("Failed to update status on server");
+      setFullProfile({ ...fullProfile, subscription_tier: newTier });
+    } catch (e) {
       console.error(e);
+      setError("Failed to update premium status. Is the server running?");
     }
   };
 
@@ -198,7 +201,7 @@ export default function Dashboard() {
       <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
         <h3 style={{ fontSize: '1.1rem', fontWeight: '500', marginBottom: '0.5rem' }}>Comparison Score for Resume Content</h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1rem' }}>Paste resume info below and save. When already enter search filters and click scan now</p>
-        <textarea 
+        <textarea
           value={baseResume}
           onChange={(e) => setBaseResume(e.target.value)}
           placeholder="Paste your base resume text here..."
@@ -225,65 +228,78 @@ export default function Dashboard() {
       <div className="glass-panel" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '2rem', padding: '1.5rem' }}>
         <div style={{ position: 'relative' }}>
           <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
+          <input
+            type="text"
             name="keywords"
-            placeholder="Keywords (e.g. React)" 
+            placeholder="Keywords (e.g. React)"
             value={filters.keywords}
             onChange={handleInputChange}
-            style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }} 
+            style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }}
           />
         </div>
         <div style={{ position: 'relative' }}>
           <MapPin size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
+          <input
+            type="text"
             name="city"
-            placeholder="City" 
+            placeholder="City"
             value={filters.city}
             onChange={handleInputChange}
-            style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }} 
+            style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }}
           />
         </div>
         <div style={{ position: 'relative' }}>
           <MapPin size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
+          <input
+            type="text"
             name="state"
-            placeholder="State" 
+            placeholder="State"
             value={filters.state}
             onChange={handleInputChange}
-            style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }} 
+            style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }}
           />
         </div>
         <div style={{ position: 'relative' }}>
           <DollarSign size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input 
-            type="number" 
+          <input
+            type="number"
             name="salary_min"
-            placeholder="Min Salary ($)" 
+            placeholder="Min Salary ($)"
             value={filters.salary_min}
             onChange={handleInputChange}
-            style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }} 
+            style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }}
           />
         </div>
+        
+        {/* New Remote Only Box */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'rgba(99, 102, 241, 0.1)', border: '1px solid var(--accent)', borderRadius: '8px' }}>
+          <input
+            type="checkbox"
+            id="remote_only"
+            checked={filters.remote_only}
+            onChange={(e) => setFilters({ ...filters, remote_only: e.target.checked })}
+            style={{ width: '18px', height: '18px', accentColor: 'var(--accent)', cursor: 'pointer' }}
+          />
+          <label htmlFor="remote_only" style={{ cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500', whiteSpace: 'nowrap' }}>Remote Only</label>
+        </div>
+
         <button onClick={handleScan} disabled={scanning} className="btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
           {scanning ? <RefreshCw className="animate-spin" size={18} /> : <Filter size={18} />}
           {scanning ? 'Scanning...' : 'Scan Now'}
         </button>
       </div>
 
-      {/* Job Boards Filter */}
-      <div className="glass-panel" style={{ padding: '1rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1.5rem', overflowX: 'auto' }}>
-        <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Job Boards:</span>
-        {['Indeed', 'LinkedIn', 'Glassdoor', 'Google'].map(board => (
-          <label key={board} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-            <input 
-              type="checkbox" 
+      {/* Job Boards Filter (Moved Higher) */}
+      <div className="glass-panel" style={{ padding: '1rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1.5rem', overflowX: 'auto', border: '1px solid var(--glass-border)' }}>
+        <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Target Sources:</span>
+        {['Indeed', 'LinkedIn', 'Glassdoor', 'Google', 'ZipRecruiter', 'Other'].map(board => (
+          <label key={board} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', padding: '0.25rem 0.5rem', borderRadius: '4px', transition: 'background 0.2s' }} className="job-board-label">
+            <input
+              type="checkbox"
               checked={filters.job_boards.includes(board)}
               onChange={(e) => {
-                const newBoards = e.target.checked 
-                  ? [...filters.job_boards, board] 
+                const newBoards = e.target.checked
+                  ? [...filters.job_boards, board]
                   : filters.job_boards.filter(b => b !== board);
                 setFilters({ ...filters, job_boards: newBoards });
               }}
@@ -327,8 +343,8 @@ export default function Dashboard() {
                 <button onClick={() => setSelectedJob(job)} className="btn-primary" style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent)', border: '1px solid var(--accent)', boxShadow: 'none' }}>
                   View Details
                 </button>
-                <button 
-                  className="btn-primary" 
+                <button
+                  className="btn-primary"
                   onClick={() => handleSaveJob(job)}
                   disabled={savingJobs.includes(job.id)}
                 >
@@ -360,12 +376,12 @@ export default function Dashboard() {
               {selectedJob.source && <span>Source: {selectedJob.source}</span>}
               {selectedJob.salary && <span style={{ color: '#10b981' }}>{selectedJob.salary}</span>}
             </div>
-            
+
             <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Job Description</h3>
             <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--glass-border)', color: 'var(--text-color)', fontSize: '0.9rem', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
               {selectedJob.description}
             </div>
-            
+
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
               <button onClick={() => handleDeleteJob(selectedJob.id)} className="btn-primary" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid #ef4444' }}>Delete Post</button>
               <button onClick={() => { handleSaveJob(selectedJob); setSelectedJob(null); }} className="btn-primary">Save to Tracker</button>
@@ -378,33 +394,33 @@ export default function Dashboard() {
       {showSettings && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
           <div className="glass-panel" style={{ width: '90%', maxWidth: '400px', padding: '2rem', position: 'relative' }}>
-             <button onClick={() => setShowSettings(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
-             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Settings size={20} /> Settings</h2>
-             
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-               <div>
-                 <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Workspace ID</label>
-                 <input type="text" readOnly value={userId} className="glass-panel" style={{ width: '100%', padding: '0.75rem', color: 'var(--text-muted)' }} />
-               </div>
-               <div>
-                 <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>MOCK PAYWALL TESTER</label>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ color: 'white', fontWeight: '500' }}>Premium Subscription</p>
-                      <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Toggle this to unlock the Insights Paywall.</p>
-                    </div>
-                    <button onClick={handleTogglePremium} style={{ background: fullProfile?.subscription_tier === 'premium' ? '#10b981' : '#4b5563', padding: '0.5rem 1rem', borderRadius: '20px', color: 'white', border: 'none', cursor: 'pointer', transition: 'background 0.3s' }}>
-                      {fullProfile?.subscription_tier === 'premium' ? 'ACTIVE' : 'INACTIVE'}
-                    </button>
-                 </div>
-               </div>
-               
-               <div>
-                 <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Data Management</label>
-                 <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>All data is saved locally on your device in the SQLite database.</p>
-                 <button onClick={() => { localStorage.clear(); window.location.href = '/'; }} className="btn-primary" style={{ background: 'rgba(239, 68, 68, 0.2)', width: '100%', color: '#fca5a5' }}>Sign Out / Clear Session</button>
-               </div>
-             </div>
+            <button onClick={() => setShowSettings(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Settings size={20} /> Settings</h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Workspace ID</label>
+                <input type="text" readOnly value={userId} className="glass-panel" style={{ width: '100%', padding: '0.75rem', color: 'var(--text-muted)' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>MOCK PAYWALL TESTER</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ color: 'white', fontWeight: '500' }}>Premium Subscription</p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Toggle this to unlock the Insights Paywall.</p>
+                  </div>
+                  <button onClick={handleTogglePremium} style={{ background: fullProfile?.subscription_tier === 'premium' ? '#10b981' : '#4b5563', padding: '0.5rem 1rem', borderRadius: '20px', color: 'white', border: 'none', cursor: 'pointer', transition: 'background 0.3s' }}>
+                    {fullProfile?.subscription_tier === 'premium' ? 'ACTIVE' : 'INACTIVE'}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Data Management</label>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>All data is saved locally on your device in the SQLite database.</p>
+                <button onClick={() => { localStorage.clear(); window.location.href = '/'; }} className="btn-primary" style={{ background: 'rgba(239, 68, 68, 0.2)', width: '100%', color: '#fca5a5' }}>Sign Out / Clear Session</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

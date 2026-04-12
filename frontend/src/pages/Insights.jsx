@@ -140,6 +140,7 @@ export default function Insights() {
           <p style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ display: 'inline-block', width: 8, height: 8, background: '#10b981', borderRadius: '50%', boxShadow: '0 0 10px #10b981' }}></span>
             Premium Unlocked
+            <span style={{ fontSize: '0.7rem', background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>TESTING MODE UNLOCKED</span>
           </p>
         </div>
       </div>
